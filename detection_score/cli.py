@@ -5,7 +5,7 @@ import argparse
 import sys
 
 from .avds_calculator import AVDSConfig
-from .detect import detect
+from .detect import detect, write_detectable_vcf
 
 
 def main(argv=None):
@@ -24,6 +24,7 @@ def main(argv=None):
     ap.add_argument("--theta-depth", type=int, default=100, help="depth normalisation threshold")
     ap.add_argument("--min-coverage", type=int, default=5, help="minimum coverage to score a site")
     ap.add_argument("-o", "--output", required=True, help="output TSV of scores and detection calls")
+    ap.add_argument("--vcf-out", help="also write an annotated VCF with the DETECTABLE flag")
     a = ap.parse_args(argv)
 
     if a.control is None and a.threshold is None:
@@ -34,11 +35,17 @@ def main(argv=None):
                    target_fp=a.fp, reference=a.reference, config=cfg, threads=a.threads)
 
     cols = [c for c in ["chrom", "pos", "id", "ref", "alt", "avds_score", "vaf_raw",
-                        "depth_total", "threshold", "target_fp", "detected"] if c in df.columns]
+                        "depth_total", "threshold", "target_fp", "detectable"] if c in df.columns]
     df.to_csv(a.output, sep="\t", index=False, columns=cols, float_format="%.4f")
+    if a.vcf_out:
+        write_detectable_vcf(a.vcf, a.vcf_out, df, T)
+
     n = len(df)
-    d = int(df["detected"].sum()) if "detected" in df else 0
-    print(f"detection-score: threshold={T:.3f}  detected={d}/{n}  -> {a.output}", file=sys.stderr)
+    d = int(df["detectable"].sum()) if "detectable" in df else 0
+    msg = f"detection-score: threshold={T:.3f}  detectable={d}/{n}  -> {a.output}"
+    if a.vcf_out:
+        msg += f" , {a.vcf_out}"
+    print(msg, file=sys.stderr)
     return 0
 
 
