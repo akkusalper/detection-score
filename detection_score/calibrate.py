@@ -29,3 +29,16 @@ def calibrate_threshold(control_scores, target_fp: float = 1e-3) -> float:
     s = s[::-1]
     k = max(1, int(round(target_fp * s.size)))
     return float(s[min(k - 1, s.size - 1)])
+
+
+def label_detectable(scores, threshold: float):
+    """Render the calibrated decision as human-readable text.
+
+    Returns an array of "detectable" (detection score >= threshold) or
+    "below the threshold" (score < threshold, or non-finite/uncovered). This is
+    only the text rendering of the numeric decision detectable = (score >= T); it
+    introduces no second cut-off, so its "detectable" count is identical to the
+    0/1 column's sum.
+    """
+    s = np.asarray(scores, dtype=float)
+    return np.where(s >= threshold, "detectable", "below the threshold")

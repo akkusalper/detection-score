@@ -14,7 +14,7 @@ import pandas as pd
 
 from .avds_calculator import AVDSConfig
 from .avds_pipeline import AVDSPipeline
-from .calibrate import calibrate_threshold
+from .calibrate import calibrate_threshold, label_detectable
 
 
 def score_vcf(vcf, bam, reference=None, config=None, threads=None) -> pd.DataFrame:
@@ -43,7 +43,8 @@ def detect(vcf, tumor_bam, control_bam=None, threshold=None, target_fp=1e-3,
 
     The threshold T is taken from `threshold` if given, otherwise calibrated on
     `control_bam` to `target_fp`. Returns (DataFrame, T); the DataFrame gains
-    `threshold`, `target_fp` and `detectable` (0/1) columns.
+    `threshold`, `target_fp`, `detectable` (0/1, for counting) and `decision`
+    (text: "detectable" / "below the threshold") columns.
     """
     tum = score_vcf(vcf, tumor_bam, reference, config, threads).copy()
     if threshold is None:
@@ -55,6 +56,7 @@ def detect(vcf, tumor_bam, control_bam=None, threshold=None, target_fp=1e-3,
     tum["threshold"] = threshold
     tum["target_fp"] = target_fp
     tum["detectable"] = (tum.get("avds_score").fillna(-1) >= threshold).astype(int)
+    tum["decision"] = label_detectable(tum.get("avds_score"), threshold)
     return tum, float(threshold)
 
 

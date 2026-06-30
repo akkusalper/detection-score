@@ -35,17 +35,14 @@ def main(argv=None):
                    target_fp=a.fp, reference=a.reference, config=cfg, threads=a.threads)
 
     cols = [c for c in ["chrom", "pos", "id", "ref", "alt", "avds_score", "vaf_raw",
-                        "depth_total", "threshold", "target_fp", "detectable"] if c in df.columns]
+                        "depth_total", "threshold", "target_fp", "detectable", "decision"]
+            if c in df.columns]
     df.to_csv(a.output, sep="\t", index=False, columns=cols, float_format="%.4f")
     if a.vcf_out:
         write_detectable_vcf(a.vcf, a.vcf_out, df, T)
 
-    n = len(df)
-    d = int(df["detectable"].sum()) if "detectable" in df else 0
-    msg = f"detection-score: threshold={T:.3f}  detectable={d}/{n}  -> {a.output}"
-    if a.vcf_out:
-        msg += f" , {a.vcf_out}"
-    print(msg, file=sys.stderr)
+    # No end-of-run summary is printed: the only outputs are the TSV (and the VCF
+    # when requested). Errors still propagate; routine progress/INFO is silenced.
     return 0
 
 
