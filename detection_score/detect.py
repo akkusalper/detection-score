@@ -6,6 +6,7 @@ This is the calibrated-score decision rule; it supersedes a fixed PASS cut-off.
 """
 from __future__ import annotations
 
+import logging
 import os
 import tempfile
 
@@ -19,6 +20,11 @@ from .calibrate import calibrate_threshold
 def score_vcf(vcf, bam, reference=None, config=None, threads=None) -> pd.DataFrame:
     """Score every variant in `vcf` against `bam`; returns a DataFrame with an
     `avds_score` column (the detection score)."""
+    # Silence the vendored AVDS pipeline's INFO summary, which logs a legacy
+    # "Recommended Actions: PASS ..." block. detection-score's only decision is
+    # detectable = score >= T, so that legacy summary must not surface anywhere.
+    for _name in ("detection_score.avds_pipeline", "detection_score.avds_calculator"):
+        logging.getLogger(_name).setLevel(logging.WARNING)
     pipe = AVDSPipeline(bam, reference, config or AVDSConfig(), threads)
     tmp = tempfile.NamedTemporaryFile(suffix=".tsv", delete=False)
     tmp.close()
